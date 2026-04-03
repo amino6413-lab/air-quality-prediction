@@ -3,3 +3,9 @@ pandas
 numpy
 ucimlrepo
 streamlit
+xgboost
+lightgbm
+catboost
+matplotlib
+seaborn
+
