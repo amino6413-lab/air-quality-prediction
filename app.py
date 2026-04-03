@@ -1,15 +1,33 @@
 import streamlit as st
-import pickle
 import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from ucimlrepo import fetch_ucirepo
 
-with open('rf_model.pkl', 'rb') as f:
-    model = pickle.load(f)
+@st.cache_resource
+def load_model():
+    air_quality = fetch_ucirepo(id=360)
+    X = air_quality.data.features
+    y = air_quality.data.targets
+    df = pd.concat([X, y], axis=1)
+    df.replace(-200, pd.NA, inplace=True)
+    df.drop(columns=['NMHC(GT)', 'Date', 'Time'], inplace=True)
+    df.fillna(df.mean(), inplace=True)
+    X = df.drop(columns=['CO(GT)'])
+    y = df['CO(GT)']
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    rf = RandomForestRegressor(n_estimators=200, random_state=42)
+    rf.fit(X_train, y_train)
+    return rf
 
 st.title("🌬️ 대기질 CO 농도 예측 시스템")
 st.write("센서값을 입력하면 일산화탄소(CO) 농도를 예측합니다.")
 
-st.sidebar.header("센서값 입력")
+with st.spinner("모델 로딩 중..."):
+    model = load_model()
 
+st.sidebar.header("센서값 입력")
 pt08_s1 = st.sidebar.slider("PT08.S1(CO) 센서값", 463, 1737, 1100)
 c6h6 = st.sidebar.slider("C6H6(GT) 벤젠 농도", 0.0, 32.0, 10.0)
 pt08_s2 = st.sidebar.slider("PT08.S2(NMHC) 센서값", 155, 1723, 939)
